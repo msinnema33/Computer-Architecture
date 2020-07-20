@@ -11,6 +11,8 @@ class CPU:
         self.pc = 0
         self.running = False
         self.sp = 7 #our stack pointer starts at the top of a 0-7 index
+        self.fl = 0b00000000 # all flags set to false on initialization
+        self.reg[7] = 0xf4 # initialize stack pointer to RAM address f4
     
     def call_stack(self, func):
         branch_table = {
@@ -83,9 +85,9 @@ class CPU:
     def ram_write(self, index, value):
         self.ram[index] = value
 
-    def load(self, f):
+    def load(self, file_path):
         """Load a program into memory."""
-        file_path = f
+        file_path = sys.argv[1]
         program = open(f"{file_path}", "r")
         address = 0
         for line in program:
