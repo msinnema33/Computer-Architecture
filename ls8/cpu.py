@@ -23,7 +23,9 @@ class CPU:
             0b01100110: self.DEC,
             0b01000101: self.PUSH,
             0b01000110: self.POP,
-            0b00000001: self.HLT
+            0b00000001: self.HLT,
+            0b01010000: self.CALL,
+            0b00010001: self.RET
         }
         if func in branch_table:
             branch_table[func]()
@@ -31,7 +33,7 @@ class CPU:
             print('invalid function')
             sys.exit(1)
 
-    def LDI(self): # num_operands = (ir & 0b11000000) >> 6 
+    def LDI(self): 
         reg_num = self.ram_read(self.pc+1)
         value = self.ram_read(self.pc+2)
         self.reg[reg_num] = value
@@ -60,7 +62,6 @@ class CPU:
         self.alu('INC', self.pc+1, None)
     
     def PUSH(self):
-        # print('push')
         #decrement SP
         self.sp -=1
         #get next value
@@ -79,11 +80,11 @@ class CPU:
         self.sp +=1
         self.pc += 2
 
-    def ram_read(self, index):
-        return self.ram[index]
+    def ram_read(self, MAR):
+        return self.ram[MAR]
 
-    def ram_write(self, index, value):
-        self.ram[index] = value
+    def ram_write(self, MDR, MAR):
+        self.ram[MAR] = MDR
 
     def load(self, file_path):
         """Load a program into memory."""
@@ -95,6 +96,19 @@ class CPU:
                 command = line.split("#", 1)[0]
                 self.ram[address] = int(command, 2)
                 address += 1
+
+    def CALL(self):
+        ret_add = self.pc + 2
+        self.reg[self.sp] -= 1
+        # self.PUSH(self.pc+2)
+        self.ram[self.reg[self.sp]] = ret_add
+        reg_num = self.ram[self.pc +1]
+        # self.pc = ret_add
+        dest_add = self.reg[reg_num]
+
+    def RET(self):
+        self.pc = self.reg[self.ram_read(self.pc + 1)]
+        self.reg[self.sp] += 1
 
 # 
 # while open(filename) as f:
@@ -112,8 +126,23 @@ class CPU:
 
         if op == "ADD":
             self.reg[self.pc+1] += self.reg[self.pc+2]
+            # self.pc += 3
+        elif op == "SUB":
+            self.reg[self.ram[reg_a]] -= self.reg[self.ram[reg_b]]
+            # self.pc += 3
+        elif op == "CMP":
+            if self.reg[self.ram[reg_a]] < self.reg[self.ram[reg_b]]:
+                self.fl = 0b00000100
+            elif self.reg[self.ram[reg_a]] > self.reg[self.ram[reg_b]]:
+                self.fl = 0b00000010
+            elif self.reg[self.ram[reg_a]] == self.reg[self.ram[reg_b]]:
+                self.fl = 0b00000001
+            else:
+                self.fl = 0b00000000
+            # self.pc += 3    
         elif op == "MULT":
             self.reg[self.ram[reg_a]] *= self.reg[self.ram[reg_b]]
+            # self.pc += 3
         else:
             raise Exception("Unsupported ALU operation")
 
