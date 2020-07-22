@@ -12,12 +12,12 @@ class CPU:
         self.running = False
         self.sp = 7 #our stack pointer starts at the top of a 0-7 index
         self.fl = 0b00000000 # all flags set to false on initialization
-        self.reg[7] = 0xf4 # initialize stack pointer to RAM address f4
+        self.reg[self.sp] = 0xf4 # initialize stack pointer to RAM address f4
     
     def call_stack(self, func):
         branch_table = {
             0b10000010: self.LDI,
-            0b01000111: self.PRN,
+            0b01000111: self.PRN,  
             0b10100010: self.MULT,
             0b01100101: self.INC,
             0b01100110: self.DEC,
@@ -61,15 +61,25 @@ class CPU:
     def INC(self):
         self.alu('INC', self.pc+1, None)
     
-    def PUSH(self):
+    def PUSH(self, value =None):
         #decrement SP
-        self.sp -=1
+        self.sp -= 1
+        if not value:
+            value = self.reg[self.ram_read(self.pc + 1)]
         #get next value
-        reg_num = self.ram[self.pc + 1]
-        value = self.reg[reg_num]
+        # reg_num = self.ram[self.pc + 1]
+        # value = self.reg[reg_num]
         #store it
-        self.ram[self.sp] = value
+        # self.ram[self.sp] = value
+        self.ram_write(value, self.reg[self.sp])
         self.pc += 2
+        # new way
+        # self.reg[self.sp] -= 1
+        # if not value:
+        #     value = self.reg[self.ram_read(self.pc + 1)]
+        #     self.ram_write(value, self.reg[self.sp])
+        #     self.pc += 2
+
     
     def POP(self):
         # print('pop')
@@ -98,38 +108,31 @@ class CPU:
                 address += 1
 
     def CALL(self):
-        ret_add = self.pc + 2
-        self.reg[self.sp] -= 1
-        # self.PUSH(self.pc+2)
-        self.ram[self.reg[self.sp]] = ret_add
-        reg_num = self.ram[self.pc +1]
-        # self.pc = ret_add
-        dest_add = self.reg[reg_num]
+        # self.reg[self.sp] -= 1
+        # self.ram_write(self.reg[self.sp], self.pc + 1)
+        # self.pc += 2
+        # self.trace()
+        # version 2
+        new_pc = self.reg[self.ram_read(self.pc + 1)]
+        self.PUSH(self.pc + 2)
+        self.pc = new_pc
+        
 
+        
     def RET(self):
-        self.pc = self.reg[self.ram_read(self.pc + 1)]
+        self.pc = self.ram_read(self.reg[self.sp])
         self.reg[self.sp] += 1
-
-# 
-# while open(filename) as f:
-#     for address, line in enumerate(f):
-#         line = line.split("#")
-#         try:
-#             v = int(line[0], 2)
-#         except ValueError:
-#             continue
-#         memory[address] = v
-
+        # trace()
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[self.pc+1] += self.reg[self.pc+2]
-            # self.pc += 3
+            
         elif op == "SUB":
             self.reg[self.ram[reg_a]] -= self.reg[self.ram[reg_b]]
-            # self.pc += 3
+            
         elif op == "CMP":
             if self.reg[self.ram[reg_a]] < self.reg[self.ram[reg_b]]:
                 self.fl = 0b00000100
@@ -139,10 +142,10 @@ class CPU:
                 self.fl = 0b00000001
             else:
                 self.fl = 0b00000000
-            # self.pc += 3    
+              
         elif op == "MULT":
             self.reg[self.ram[reg_a]] *= self.reg[self.ram[reg_b]]
-            # self.pc += 3
+            
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -171,4 +174,4 @@ class CPU:
         self.running = True
         while self.running:
             ir = self.ram[self.pc]
-            self.call_stack(ir)
+            self.call_stack(ir) 
