@@ -3,9 +3,14 @@
 """Main."""
 
 import sys
-from cpu import *
+# from cpu import *
+# from cpu2 import *
+from cpu3 import *
 
 cpu = CPU()
 
-cpu.load("examples/stack.ls8")
-cpu.run()
+if len(sys.argv) > 1:
+    cpu.load(sys.argv[1])
+    cpu.run()
+else:
+    print("please add a program to run")
